@@ -151,9 +151,8 @@ module.exports = (robot) ->
   robot.respond /rm newissue (?:\s*to\s*)?(?:"?([^" ]+)"? )(?:\s*with\s*)("?([^"]+)"?)/i, (msg) ->
     [project_id, subject] = msg.match[1..2]
 
-    attributes =
-      "project_id": "#{project_id}"
-      "subject": #{subject}
+    attributes['project_id'] = project_id
+    attributes['subject'] = subject
 
     redmine.Issue().add attributes, (err, data, status) ->
       unless data?
