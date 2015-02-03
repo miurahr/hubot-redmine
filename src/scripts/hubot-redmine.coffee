@@ -376,6 +376,7 @@ class Redmine
             throw new Error "401: Authentication failed."
           else
             console.error "Code: #{response.statusCode}"
+            console.error "Body: #{response.body}"
             callback null, null, response.statusCode
 
       response.on "error", (err) ->
