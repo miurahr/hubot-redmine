@@ -42,6 +42,12 @@ else
 URL = require('url')
 QUERY = require('querystring')
 
+# function unicodeEscape() is quoted from http://liosk.blog103.fc2.com/blog-entry-67.html
+# (modified for coffeescript)
+unicodeEscape = (str) ->
+    pref = {1: "\\x0", 2: "\\x", 3: "\\u0", 4: "\\u"}
+    str.replace(/[^\x00-\x7F]/g, (c) -> pref[(code = c.charCodeAt(0).toString(16)).length] + code )
+
 module.exports = (robot) ->
   redmine = new Redmine process.env.HUBOT_REDMINE_BASE_URL, process.env.HUBOT_REDMINE_TOKEN
 
@@ -132,7 +138,7 @@ module.exports = (robot) ->
           msg.send _.join "\n"
 
   # Robot update <issue> with "<note>"
-  robot.respond /rm update (?:issue )?(?:#)?(\d+)(?:\s*with\s*)?(?:[-:,])? (?:"?([^"]+)"?)/i, (msg) ->
+  robot.respond /rm update (?:issue )?(?:#)?(\d+) (?:\s*with\s*)?"?(.*)"?/i, (msg) ->
     [id, note] = msg.match[1..2]
 
     attributes =
@@ -148,18 +154,20 @@ module.exports = (robot) ->
         msg.send "Done! Updated ##{id} with \"#{note}\""
 
   # Robot newissue to "<project>" with "<subject>"
-  robot.respond /rm newissue (?:\s*to\s*)?(?:"?([^" ]+)"? )(?:\s*with\s*)("?([^"]+)"?)/i, (msg) ->
+  robot.respond /rm newissue +(?:\s*to\s*)?"?(\w*?)"? +(?:\s*with\s*)?"?(.*)"?/i, (msg) ->
     [project_id, subject] = msg.match[1..2]
 
-    attributes['project_id'] = project_id
-    attributes['subject'] = subject
+    attributes =
+      'project_id': project_id
+      'subject': subject
 
     redmine.Issue().add attributes, (err, data, status) ->
-      unless data?
-        if status == 404
-          msg.send "Couldn't update this issue, #{status} :("
-      else
-        msg.send "Done! Added issue #{data.id} with \"#{subject}\""
+        unless data?
+          if status == 404
+            msg.send "Couldn't add this issue, #{status} :("
+        else
+          console.error(JSON.stringify data)
+          msg.send "Done! Added issue #{redmine.url}/issues/#{data.issue.id} with \"#{subject}\""
 
   # Robot assign <issue> to <user> ["note to add with the assignment]
   robot.respond /rm assign (?:issue )?(?:#)?(\d+) to (\w+)(?: "?([^"]+)"?)?/i, (msg) ->
@@ -355,6 +363,9 @@ class Redmine
     if method in ["POST", "PUT"]
       if typeof(body) isnt "string"
         body = JSON.stringify body
+        # JSON.stringify does not encode Japanese characters, but Redmine API
+        # does not accept raw Japanese characters. So escape non-ASCII characters unicodeEscape function.
+        body = unicodeEscape body
 
       options.headers["Content-Length"] = body.length
 
@@ -366,7 +377,7 @@ class Redmine
 
       response.on "end", ->
         switch response.statusCode
-          when 200
+          when 200,201
             try
               callback null, JSON.parse(data), response.statusCode
             catch err
@@ -375,7 +386,6 @@ class Redmine
             throw new Error "401: Authentication failed."
           else
             console.error "Code: #{response.statusCode}"
-            console.error "Body: #{response.body}"
             callback null, null, response.statusCode
 
       response.on "error", (err) ->
