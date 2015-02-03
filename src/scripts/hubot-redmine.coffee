@@ -154,7 +154,7 @@ module.exports = (robot) ->
         msg.send "Done! Updated ##{id} with \"#{note}\""
 
   # Robot newissue to "<project>" with "<subject>"
-  robot.respond /rm newissue +(?:\s*to\s*)?"?(\w*?)"? +(?:\s*with\s*)?"?(.*)"?/i, (msg) ->
+  robot.respond /rm newissue +(?:\s*to\s*)?"?([A-Za-z0-9_-]*?)"? +(?:\s*with\s*)?"?(.*)"?/i, (msg) ->
     [project_id, subject] = msg.match[1..2]
 
     attributes =
