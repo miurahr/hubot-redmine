@@ -45,12 +45,12 @@ module.exports = (robot) ->
   redmine = new Redmine process.env.HUBOT_REDMINE_BASE_URL, process.env.HUBOT_REDMINE_TOKEN
 
   # Robot link me <issue>
-  robot.respond /link me (?:issue )?(?:#)?(\d+)/i, (msg) ->
+  robot.respond /rm link me (?:issue )?(?:#)?(\d+)/i, (msg) ->
     id = msg.match[1]
     msg.reply "#{redmine.url}/issues/#{id}"
 
   # Robot set <issue> to <percent>% ["comments"]
-  robot.respond /set (?:issue )?(?:#)?(\d+) to (\d{1,3})%?(?: "?([^"]+)"?)?/i, (msg) ->
+  robot.respond /rm set (?:issue )?(?:#)?(\d+) to (\d{1,3})%?(?: "?([^"]+)"?)?/i, (msg) ->
     [id, percent, notes] = msg.match[1..3]
     percent = parseInt percent
 
@@ -70,7 +70,7 @@ module.exports = (robot) ->
         msg.reply "Update failed! (#{err})"
 
   # Robot add <hours> hours to <issue_id> ["comments for the time tracking"]
-  robot.respond /add (\d{1,2}) hours? to (?:issue )?(?:#)?(\d+)(?: "?([^"]+)"?)?/i, (msg) ->
+  robot.respond /rm add (\d{1,2}) hours? to (?:issue )?(?:#)?(\d+)(?: "?([^"]+)"?)?/i, (msg) ->
     [hours, id, userComments] = msg.match[1..3]
     hours = parseInt hours
 
@@ -91,7 +91,7 @@ module.exports = (robot) ->
         msg.reply "Nothing could be logged. Make sure RedMine has a default activity set for time tracking. (Settings -> Enumerations -> Activities)"
 
   # Robot show <my|user's> [redmine] issues
-  robot.respond /show (?:my|(\w+\'s)) (?:redmine )?issues/i, (msg) ->
+  robot.respond /rm show (?:my|(\w+\'s)) (?:redmine )?issues/i, (msg) ->
     userMode = true
     firstName =
       if msg.match[1]?
@@ -131,7 +131,7 @@ module.exports = (robot) ->
           msg.reply _.join "\n"
 
   # Robot update <issue> with "<note>"
-  robot.respond /update (?:issue )?(?:#)?(\d+)(?:\s*with\s*)?(?:[-:,])? (?:"?([^"]+)"?)/i, (msg) ->
+  robot.respond /rm update (?:issue )?(?:#)?(\d+)(?:\s*with\s*)?(?:[-:,])? (?:"?([^"]+)"?)/i, (msg) ->
     [id, note] = msg.match[1..2]
 
     attributes =
@@ -146,19 +146,13 @@ module.exports = (robot) ->
       else
         msg.reply "Done! Updated ##{id} with \"#{note}\""
 
-  # Robot add issue to "<project>" [traker <id>] with "<subject>"
-  robot.respond /add (?:issue )?(?:\s*to\s*)?(?:"?([^" ]+)"? )(?:tracker\s)?(\d+)?(?:\s*with\s*)("?([^"]+)"?)/i, (msg) ->
-    [project_id, tracker_id, subject] = msg.match[1..3]
+  # Robot newissue to "<project>" with "<subject>"
+  robot.respond /rm newissue (?:\s*to\s*)?(?:"?([^" ]+)"? )(?:\s*with\s*)("?([^"]+)"?)/i, (msg) ->
+    [project_id, subject] = msg.match[1..2]
 
     attributes =
       "project_id": "#{project_id}"
       "subject": "#{subject}"
-
-    if tracker_id?
-      attributes =
-        "project_id": "#{project_id}"
-        "subject": "#{subject}"
-        "tracker_id": "#{tracker_id}"
 
     redmine.Issue().add attributes, (err, data, status) ->
       unless data?
@@ -168,7 +162,7 @@ module.exports = (robot) ->
         msg.reply "Done! Added issue #{data.id} with \"#{subject}\""
 
   # Robot assign <issue> to <user> ["note to add with the assignment]
-  robot.respond /assign (?:issue )?(?:#)?(\d+) to (\w+)(?: "?([^"]+)"?)?/i, (msg) ->
+  robot.respond /rm assign (?:issue )?(?:#)?(\d+) to (\w+)(?: "?([^"]+)"?)?/i, (msg) ->
     [id, userName, note] = msg.match[1..3]
 
     redmine.Users name:userName, (err, data) ->
