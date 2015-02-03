@@ -10,14 +10,14 @@
 #   HUBOT_REDMINE_SSL - Use "1" if your server uses SSL (https://)
 #
 # Commands:
-#   rm show me <issue-id>     - Show the issue status
-#   rm show (my|user's) issues          - Show your issues or another user's issues
-#   rm assign <issue-id> to <user-first-name> ["notes"]  - Assign the issue to the user (searches login or firstname)
-#   rm update <issue-id> with "<note>"  - Adds a note to the issue
-#   rm add <hours> hours to <issue-id> ["comments"]  - Adds hours to the issue with the optional comments
-#   rm link me <issue-id> - Returns a link to the redmine issue
-#   rm set <issue-id> to <int>% ["comments"] - Updates an issue and sets the percent done
-#   rm newissue to "<project>" with "<subject>" - Add a new issue to project with subject
+#   hubot rm show me <issue-id>     - Show the issue status
+#   hubot rm show (my|user's) issues          - Show your issues or another user's issues
+#   hubot rm assign <issue-id> to <user-first-name> ["notes"]  - Assign the issue to the user (searches login or firstname)
+#   hubot rm update <issue-id> with "<note>"  - Adds a note to the issue
+#   hubot rm add <hours> hours to <issue-id> ["comments"]  - Adds hours to the issue with the optional comments
+#   hubot rm link me <issue-id> - Returns a link to the redmine issue
+#   hubot rm set <issue-id> to <int>% ["comments"] - Updates an issue and sets the percent done
+#   hubot rm newissue to "<project>" with "<subject>" - Add a new issue to project with subject
 
 #---
 #
@@ -48,7 +48,7 @@ module.exports = (robot) ->
   # Robot link me <issue>
   robot.respond /rm link me (?:issue )?(?:#)?(\d+)/i, (msg) ->
     id = msg.match[1]
-    msg.reply "#{redmine.url}/issues/#{id}"
+    msg.send "#{redmine.url}/issues/#{id}"
 
   # Robot set <issue> to <percent>% ["comments"]
   robot.respond /rm set (?:issue )?(?:#)?(\d+) to (\d{1,3})%?(?: "?([^"]+)"?)?/i, (msg) ->
@@ -66,9 +66,9 @@ module.exports = (robot) ->
 
     redmine.Issue(id).update attributes, (err, data, status) ->
       if status == 200
-        msg.reply "Set ##{id} to #{percent}%"
+        msg.send "Set ##{id} to #{percent}%"
       else
-        msg.reply "Update failed! (#{err})"
+        msg.send "Update failed! (#{err})"
 
   # Robot add <hours> hours to <issue_id> ["comments for the time tracking"]
   robot.respond /rm add (\d{1,2}) hours? to (?:issue )?(?:#)?(\d+)(?: "?([^"]+)"?)?/i, (msg) ->
@@ -87,9 +87,9 @@ module.exports = (robot) ->
 
     redmine.TimeEntry(null).create attributes, (error, data, status) ->
       if status == 201
-        msg.reply "Your time was logged"
+        msg.send "Your time was logged"
       else
-        msg.reply "Nothing could be logged. Make sure RedMine has a default activity set for time tracking. (Settings -> Enumerations -> Activities)"
+        msg.send "Nothing could be logged. Make sure RedMine has a default activity set for time tracking. (Settings -> Enumerations -> Activities)"
 
   # Robot show <my|user's> [redmine] issues
   robot.respond /rm show (?:my|(\w+\'s)) (?:redmine )?issues/i, (msg) ->
@@ -103,7 +103,7 @@ module.exports = (robot) ->
 
     redmine.Users name:firstName, (err,data) ->
       unless data.total_count > 0
-        msg.reply "Couldn't find any users with the name \"#{firstName}\""
+        msg.send "Couldn't find any users with the name \"#{firstName}\""
         return false
 
       user = resolveUsers(firstName, data.users)[0]
@@ -116,7 +116,7 @@ module.exports = (robot) ->
 
       redmine.Issues params, (err, data) ->
         if err?
-          msg.reply "Couldn't get a list of issues for you!"
+          msg.send "Couldn't get a list of issues for you!"
         else
           _ = []
 
@@ -129,7 +129,7 @@ module.exports = (robot) ->
             do (issue) ->
               _.push "\n[#{issue.tracker.name} - #{issue.priority.name} - #{issue.status.name}] ##{issue.id}: #{issue.subject}"
 
-          msg.reply _.join "\n"
+          msg.send _.join "\n"
 
   # Robot update <issue> with "<note>"
   robot.respond /rm update (?:issue )?(?:#)?(\d+)(?:\s*with\s*)?(?:[-:,])? (?:"?([^"]+)"?)/i, (msg) ->
@@ -141,11 +141,11 @@ module.exports = (robot) ->
     redmine.Issue(id).update attributes, (err, data, status) ->
       unless data?
         if status == 404
-          msg.reply "Issue ##{id} doesn't exist."
+          msg.send "Issue ##{id} doesn't exist."
         else
-          msg.reply "Couldn't update this issue, sorry :("
+          msg.send "Couldn't update this issue, sorry :("
       else
-        msg.reply "Done! Updated ##{id} with \"#{note}\""
+        msg.send "Done! Updated ##{id} with \"#{note}\""
 
   # Robot newissue to "<project>" with "<subject>"
   robot.respond /rm newissue (?:\s*to\s*)?(?:"?([^" ]+)"? )(?:\s*with\s*)("?([^"]+)"?)/i, (msg) ->
@@ -153,14 +153,14 @@ module.exports = (robot) ->
 
     attributes =
       "project_id": "#{project_id}"
-      "subject": "#{subject}"
+      "subject": #{subject}
 
     redmine.Issue().add attributes, (err, data, status) ->
       unless data?
         if status == 404
-          msg.reply "Couldn't update this issue, #{status} :("
+          msg.send "Couldn't update this issue, #{status} :("
       else
-        msg.reply "Done! Added issue #{data.id} with \"#{subject}\""
+        msg.send "Done! Added issue #{data.id} with \"#{subject}\""
 
   # Robot assign <issue> to <user> ["note to add with the assignment]
   robot.respond /rm assign (?:issue )?(?:#)?(\d+) to (\w+)(?: "?([^"]+)"?)?/i, (msg) ->
@@ -168,7 +168,7 @@ module.exports = (robot) ->
 
     redmine.Users name:userName, (err, data) ->
       unless data.total_count > 0
-        msg.reply "Couldn't find any users with the name \"#{userName}\""
+        msg.send "Couldn't find any users with the name \"#{userName}\""
         return false
 
       # try to resolve the user using login/firstname -- take the first result (hacky)
@@ -184,11 +184,11 @@ module.exports = (robot) ->
       redmine.Issue(id).update attributes, (err, data, status) ->
         unless data?
           if status == 404
-            msg.reply "Issue ##{id} doesn't exist."
+            msg.send "Issue ##{id} doesn't exist."
           else
-            msg.reply "There was an error assigning this issue."
+            msg.send "There was an error assigning this issue."
         else
-          msg.reply "Assigned ##{id} to #{user.firstname}."
+          msg.send "Assigned ##{id} to #{user.firstname}."
           msg.send '/play trombone' if parseInt(id) == 3631
 
   # Robot show me <issue>
@@ -200,7 +200,7 @@ module.exports = (robot) ->
 
     redmine.Issue(id).show params, (err, data, status) ->
       unless status == 200
-        msg.reply "Issue ##{id} doesn't exist."
+        msg.send "Issue ##{id} doesn't exist."
         return false
 
       issue = data.issue
@@ -222,7 +222,7 @@ module.exports = (robot) ->
             _.push "#{journal.user.name} on #{date}:"
             _.push "    #{journal.notes}\n"
 
-      msg.reply _.join "\n"
+      msg.send _.join "\n"
 
 # simple ghetto fab date formatter this should definitely be replaced, but didn't want to
 # introduce dependencies this early
