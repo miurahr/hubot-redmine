@@ -10,6 +10,13 @@ If using over SSL, add the following to your heroku config:
 
     heroku config:add HUBOT_REDMINE_SSL=1
 
+If redmine use self-signed certification, or not-well-known CA such as cacert.org,
+place certification pem file and add the following:
+
+   heroku config:add HUBOT_REDMINE_SSL_CA=/etc/ssl/certs/cacert.org-class3.pem
+
+If not spefified, it use well-known authority certificates, such as verisign, to check the remote host.
+
 ![screenshot](https://github.com/robhurring/hubot-redmine/blob/master/ss.png?raw=true)
 
 ## Showing issue details

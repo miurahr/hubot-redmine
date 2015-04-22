@@ -31,6 +31,13 @@
 #
 #   heroku config:add HUBOT_REDMINE_SSL=1
 #
+# If redmine use self signed cert
+# or not well known CA such as cacert.org, add the following config option
+#
+#   heroku config:add HUBOT_REDMINE_SSL_CA=/etc/ssl/certs/cacert.org-class3.pem
+#
+# Please spefify PEM format CA filepath.
+#
 # There may be issues if you have a lot of redmine users sharing a first name, but this can be avoided
 # by using redmine logins rather than firstnames
 #
@@ -299,6 +306,11 @@ class Redmine
   constructor: (url, token) ->
     @url = url
     @token = token
+    @agent = new HTTP.Agent({ keepAlive: true });
+    if process.env.HUBOT_REDMINE_SSL? && process.env.HUBOT_REDMINE_SSL_CA?
+      @ca = fs.readFileSync(process.env.HUBOT_REDMINE_SSL_CA)
+    else
+      @ca = null
 
   Users: (params, callback) ->
     @get "/users.json", params, callback
@@ -359,6 +371,9 @@ class Redmine
       "path"   : "#{pathname}#{path}"
       "method" : method
       "headers": headers
+      "agent"  : @agent
+
+    options.ca = @ca if @ca?
 
     if method in ["POST", "PUT"]
       if typeof(body) isnt "string"
